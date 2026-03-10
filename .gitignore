@@ -1,0 +1,15 @@
+# Папки с зависимостями
+node_modules/
+dist/
+
+# Файлы ОС
+.DS_Store
+Thumbs.db
+
+# Файлы редакторов
+.vscode/
+.idea/
+
+# Логи и временные файлы
+*.log
+*.tmp
