@@ -1,4 +1,4 @@
-export async function apiRequest(url, options = {}) {
+export async function advancedApiRequest (url, options = {}) {
     const defaultOptions = {
         method: 'GET',
         headers: {
