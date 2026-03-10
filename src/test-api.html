@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тест API</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { padding: 10px; margin: 5px; cursor: pointer; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow: auto; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Тестирование API МарсИЭТ</h1>
+    
+    <div>
+        <button onclick="testRandomTile()">🎲 Получить случайный тайл</button>
+        <button onclick="testCoordinates()">📍 Получить координаты модулей</button>
+        <button onclick="testMultipleTiles()">🔄 Получить 5 тайлов</button>
+        <button onclick="clearResults()">🗑 Очистить</button>
+    </div>
+    
+    <div>
+        <label>Адрес API:</label>
+        <input type="text" id="apiUrl" value="https://olimp.miet.ru/ppo_it/api" size="50">
+        <button onclick="changeUrl()">Сменить URL</button>
+    </div>
+    
+    <h3>Результат:</h3>
+    <pre id="result">Нажмите кнопку для теста...</pre>
+    
+    <script type="module">
+        import { marsApi } from './api/marsApi.js';
+        
+        // Делаем функции глобальными для доступа из onclick
+        window.testRandomTile = async () => {
+            const result = document.getElementById('result');
+            result.innerHTML = '⏳ Загрузка...';
+            
+            try {
+                const tile = await marsApi.getRandomTile();
+                result.innerHTML = '✅ Успех!\n\n' + formatTileData(tile);
+                result.className = 'success';
+            } catch (error) {
+                result.innerHTML = '❌ Ошибка:\n' + error.message;
+                result.className = 'error';
+            }
+        };
+        
+        window.testCoordinates = async () => {
+            const result = document.getElementById('result');
+            result.innerHTML = '⏳ Загрузка...';
+            
+            try {
+                const coords = await marsApi.getModuleCoordinates();
+                result.innerHTML = '✅ Координаты получены:\n\n' + 
+                    JSON.stringify(coords, null, 2);
+                result.className = 'success';
+            } catch (error) {
+                result.innerHTML = '❌ Ошибка:\n' + error.message;
+                result.className = 'error';
+            }
+        };
+        
+        window.testMultipleTiles = async () => {
+            const result = document.getElementById('result');
+            result.innerHTML = '⏳ Загрузка 5 тайлов...';
+            
+            try {
+                const tiles = await marsApi.getMultipleTiles(5);
+                result.innerHTML = `✅ Получено ${tiles.length} тайлов:\n\n` +
+                    tiles.map((tile, i) => `Тайл ${i + 1}: ${tile.length}x${tile[0].length}`).join('\n');
+                result.className = 'success';
+            } catch (error) {
+                result.innerHTML = '❌ Ошибка:\n' + error.message;
+                result.className = 'error';
+            }
+        };
+        
+        window.changeUrl = () => {
+            const newUrl = document.getElementById('apiUrl').value;
+            marsApi.setBaseUrl(newUrl);
+            document.getElementById('result').innerHTML = `URL изменен на: ${newUrl}`;
+        };
+        
+        window.clearResults = () => {
+            document.getElementById('result').innerHTML = 'Готов к работе...';
+            document.getElementById('result').className = '';
+        };
+        
+        // Вспомогательная функция для красивого вывода тайла
+        function formatTileData(tile) {
+            let output = `Размер: ${tile.length} x ${tile[0].length}\n`;
+            output += 'Первые 5x5 значений:\n';
+            
+            for (let i = 0; i < 5; i++) {
+                output += '  ' + tile[i].slice(0, 5).join(' ') + '\n';
+            }
+            
+            // Статистика
+            const flat = tile.flat();
+            const min = Math.min(...flat);
+            const max = Math.max(...flat);
+            const avg = Math.round(flat.reduce((a,b) => a + b, 0) / flat.length);
+            
+            output += `\nСтатистика:\n  Минимум: ${min}\n  Максимум: ${max}\n  Среднее: ${avg}`;
+            
+            return output;
+        }
+    </script>
+</body>
+</html>
