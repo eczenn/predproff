@@ -1,0 +1,130 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #1a1a2e;
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+h1 {
+    color: #ff6b6b;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px rgba(255, 107, 107, 0.3);
+}
+
+.container {
+    display: flex;
+    gap: 20px;
+    max-width: 1200px;
+    width: 100%;
+}
+
+.map-container {
+    flex: 2;
+    background: #16213e;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+canvas {
+    width: 100%;
+    height: auto;
+    border: 2px solid #0f3460;
+    border-radius: 5px;
+    background: #0f3460;
+    cursor: crosshair;
+}
+
+.controls {
+    flex: 1;
+    background: #16213e;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+.control-group {
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #0f3460;
+}
+
+h3 {
+    color: #4ecca3;
+    margin-bottom: 15px;
+}
+
+button {
+    background: #4ecca3;
+    color: #1a1a2e;
+    border: none;
+    padding: 10px 20px;
+    margin: 5px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: calc(100% - 10px);
+}
+
+button:hover {
+    background: #45b893;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(78, 204, 163, 0.4);
+}
+
+.button-group {
+    display: flex;
+    gap: 5px;
+}
+
+.button-group button {
+    flex: 1;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border: 2px solid #0f3460;
+    background: #1a1a2e;
+    color: white;
+    border-radius: 5px;
+}
+
+.status {
+    background: #0f3460;
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+.badge {
+    background: #4ecca3;
+    color: #1a1a2e;
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+footer {
+    margin-top: 20px;
+    color: #4a4a6a;
+}
