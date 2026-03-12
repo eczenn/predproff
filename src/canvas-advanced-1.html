@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Canvas: Продвинутая отрисовка</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        canvas {
+            border: 3px solid #0f3460;
+            border-radius: 8px;
+            background: #16213e;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+            background: #ff6b8b;
+        }
+        
+        .info-panel {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .stat {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e94560;
+        }
+        
+        .slider-container {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Продвинутая 2D-графика</h1>
+        
+        <div class="controls">
+            <button onclick="drawGradient()">🌈 Градиент</button>
+            <button onclick="drawPattern()">🔷 Паттерн</button>
+            <button onclick="drawShadows()">🌓 Тени</button>
+            <button onclick="drawTransform()">🔄 Трансформации</button>
+            <button onclick="drawComposite()">🖼️ Композитинг</button>
+            <button onclick="clearCanvas()">🗑️ Очистить</button>
+            
+            <div class="slider-container">
+                <label>Прозрачность: <span id="alphaValue">1.0</span></label>
+                <input type="range" id="alphaSlider" min="0" max="1" step="0.1" value="1" oninput="updateAlpha(this.value)">
+            </div>
+        </div>
+        
+        <canvas id="mainCanvas" width="800" height="400"></canvas>
+        
+        <div class="info-panel" id="stats">
+            <div class="stat">
+                <div>Текущий режим</div>
+                <div class="stat-value" id="currentMode">—</div>
+            </div>
+            <div class="stat">
+                <div>Координаты мыши</div>
+                <div class="stat-value" id="mouseCoords">(0, 0)</div>
+            </div>
+            <div class="stat">
+                <div>Цвет пикселя</div>
+                <div class="stat-value" id="pixelColor">—</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const alphaSlider = document.getElementById('alphaSlider');
+        const alphaValue = document.getElementById('alphaValue');
+        const currentMode = document.getElementById('currentMode');
+        
+        let globalAlpha = 1.0;
+        
+        // Обновление прозрачности
+        window.updateAlpha = (value) => {
+            globalAlpha = parseFloat(value);
+            alphaValue.textContent = globalAlpha.toFixed(1);
+        };
+        
+        // 1. ГРАДИЕНТЫ
+        window.drawGradient = () => {
+            clearCanvas();
+            currentMode.textContent = 'Градиенты';
+            
+            // Линейный градиент
+            const linearGradient = ctx.createLinearGradient(50, 50, 350, 350);
+            linearGradient.addColorStop(0, '#ff0000');
+            linearGradient.addColorStop(0.5, '#00ff00');
+            linearGradient.addColorStop(1, '#0000ff');
+            
+            ctx.fillStyle = linearGradient;
+            ctx.globalAlpha = globalAlpha;
+            ctx.fillRect(50, 50, 300, 300);
+            
+            // Радиальный градиент
+            const radialGradient = ctx.createRadialGradient(600, 200, 30, 600, 200, 150);
+            radialGradient.addColorStop(0, '#ffff00');
+            radialGradient.addColorStop(0.5, '#ff00ff');
+            radialGradient.addColorStop(1, '#00ffff');
+            
+            ctx.fillStyle = radialGradient;
+            ctx.beginPath();
+            ctx.arc(600, 200, 150, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Текст с информацией
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('Линейный градиент', 100, 400);
+            ctx.fillText('Радиальный градиент', 500, 400);
+        };
+        
+        // 2. ПАТТЕРНЫ
+        window.drawPattern = () => {
+            clearCanvas();
+            currentMode.textContent = 'Паттерны';
+            
+            // Создаем паттерн из маленького canvas
+            const patternCanvas = document.createElement('canvas');
+            patternCanvas.width = 20;
+            patternCanvas.height = 20;
+            const patternCtx = patternCanvas.getContext('2d');
+            
+            // Рисуем узор
+            patternCtx.fillStyle = '#e94560';
+            patternCtx.fillRect(0, 0, 10, 10);
+            patternCtx.fillRect(10, 10, 10, 10);
+            patternCtx.fillStyle = '#0f3460';
+            patternCtx.fillRect(10, 0, 10, 10);
+            patternCtx.fillRect(0, 10, 10, 10);
+            
+            // Применяем паттерн
+            const pattern = ctx.createPattern(patternCanvas, 'repeat');
+            ctx.fillStyle = pattern;
+            ctx.globalAlpha = globalAlpha;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Добавляем текст поверх
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 24px Arial';
+            ctx.fillText('Паттерн "Клетка"', 250, 200);
+        };
+        
+        // 3. ТЕНИ
+        window.drawShadows = () => {
+            clearCanvas();
+            currentMode.textContent = 'Тени';
+            
+            // Настройки теней
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 10;
+            ctx.shadowOffsetY = 10;
+            
+            ctx.globalAlpha = globalAlpha;
+            
+            // Рисуем фигуры с тенями
+            ctx.fillStyle = '#e94560';
+            ctx.fillRect(100, 100, 150, 150);
+            
+            ctx.fillStyle = '#0f3460';
+            ctx.beginPath();
+            ctx.arc(500, 200, 80, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Тень для текста
+            ctx.shadowColor = '#e94560';
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetX = 5;
+            ctx.shadowOffsetY = 5;
+            
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 30px Arial';
+            ctx.fillText('Тени', 300, 350);
+            
+            // Сброс настроек теней
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        };
+        
+        // 4. ТРАНСФОРМАЦИИ
+        window.drawTransform = () => {
+            clearCanvas();
+            currentMode.textContent = 'Трансформации';
+            
+            ctx.save(); // Сохраняем состояние
+            
+            ctx.globalAlpha = globalAlpha;
+            
+            // Сдвиг (translate)
+            ctx.translate(200, 150);
+            ctx.fillStyle = '#e94560';
+            ctx.fillRect(0, 0, 100, 100);
+            
+            // Масштабирование (scale)
+            ctx.scale(0.5, 0.5);
+            ctx.fillStyle = '#0f3460';
+            ctx.fillRect(200, 50, 100, 100);
+            
+            // Поворот (rotate)
+            ctx.rotate(45 * Math.PI / 180);
+            ctx.fillStyle = '#4ecdc4';
+            ctx.fillRect(100, -50, 80, 80);
+            
+            ctx.restore(); // Восстанавливаем состояние
+            
+            // Пояснения
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = 'white';
+            ctx.font = '14px Arial';
+            ctx.fillText('translate(200,150)', 50, 300);
+            ctx.fillText('scale(0.5) + rotate', 250, 250);
+        };
+        
+        // 5. КОМПОЗИТИНГ
+        window.drawComposite = () => {
+            clearCanvas();
+            currentMode.textContent = 'Композитинг';
+            
+            // Рисуем фон
+            ctx.fillStyle = '#0f3460';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const modes = [
+                'source-over',    // По умолчанию
+                'destination-over',
+                'lighter',        // Сложение цветов
+                'multiply',
+                'screen',
+                'overlay'
+            ];
+            
+            ctx.globalAlpha = 0.8;
+            
+            modes.forEach((mode, index) => {
+                const x = 50 + (index * 120);
+                const y = 50;
+                
+                // Устанавливаем режим композитинга
+                ctx.globalCompositeOperation = mode;
+                
+                // Рисуем квадрат
+                ctx.fillStyle = '#e94560';
+                ctx.fillRect(x, y, 80, 80);
+                
+                // Рисуем круг поверх
+                ctx.fillStyle = '#4ecdc4';
+                ctx.beginPath();
+                ctx.arc(x + 60, y + 60, 40, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Подпись режима
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = 'white';
+                ctx.font = '10px Arial';
+                ctx.fillText(mode, x, y + 100);
+            });
+            
+            // Сброс
+            ctx.globalCompositeOperation = 'source-over';
+        };
+        
+        // Очистка
+        window.clearCanvas = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = 1.0;
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // Сброс трансформаций
+            currentMode.textContent = '—';
+        };
+        
+        // Отслеживание мыши
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor(e.clientX - rect.left);
+            const y = Math.floor(e.clientY - rect.top);
+            
+            document.getElementById('mouseCoords').textContent = `(${x}, ${y})`;
+            
+            // Получаем цвет пикселя под мышью
+            try {
+                const pixel = ctx.getImageData(x, y, 1, 1).data;
+                document.getElementById('pixelColor').textContent = 
+                    `rgba(${pixel[0]}, ${pixel[1]}, ${pixel[2]}, ${(pixel[3]/255).toFixed(2)})`;
+            } catch (e) {
+                // Вне canvas
+            }
+        });
+        
+        // Начальный рисунок
+        drawGradient();
+    </script>
+</body>
+</html>

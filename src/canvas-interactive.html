@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Интерактивный Canvas</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .canvas-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        
+        canvas {
+            border: 3px solid #0f3460;
+            border-radius: 8px;
+            background: #16213e;
+            cursor: crosshair;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            pointer-events: none;
+            display: none;
+            z-index: 1000;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #0f3460;
+            color: white;
+            border: 1px solid #e94560;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #e94560;
+        }
+        
+        button.active {
+            background: #e94560;
+        }
+    </style>
+</head>
+<body>
+    <h1>🖱️ Интерактивный Canvas</h1>
+    
+    <div class="controls">
+        <button id="btnPan" class="active">✋ Перемещение</button>
+        <button id="btnDraw">✏️ Рисование</button>
+        <button id="btnSelect">🔍 Выделение</button>
+        <button id="btnZoomIn">➕ Приблизить</button>
+        <button id="btnZoomOut">➖ Отдалить</button>
+        <button id="btnReset">🔄 Сброс</button>
+    </div>
+    
+    <div class="canvas-wrapper">
+        <canvas id="interactiveCanvas" width="600" height="400"></canvas>
+        <div class="tooltip" id="tooltip"></div>
+    </div>
+    
+    <div style="margin-top: 20px; background: #16213e; padding: 15px; border-radius: 8px;">
+        <p id="status">Режим: Перемещение</p>
+        <p id="coordinates">Координаты: —</p>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('interactiveCanvas');
+        const ctx = canvas.getContext('2d');
+        const tooltip = document.getElementById('tooltip');
+        const statusEl = document.getElementById('status');
+        const coordsEl = document.getElementById('coordinates');
+        
+        // Состояние
+        let mode = 'pan'; // pan, draw, select
+        let isDragging = false;
+        let lastX, lastY;
+        
+        // Трансформации
+        let scale = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        // Данные
+        let points = [];
+        let selectedPoints = [];
+        
+        // Кнопки
+        document.getElementById('btnPan').onclick = () => setMode('pan');
+        document.getElementById('btnDraw').onclick = () => setMode('draw');
+        document.getElementById('btnSelect').onclick = () => setMode('select');
+        document.getElementById('btnZoomIn').onclick = () => zoom(1.2);
+        document.getElementById('btnZoomOut').onclick = () => zoom(0.8);
+        document.getElementById('btnReset').onclick = resetView;
+        
+        function setMode(newMode) {
+            mode = newMode;
+            statusEl.textContent = `Режим: ${
+                mode === 'pan' ? 'Перемещение' : 
+                mode === 'draw' ? 'Рисование' : 'Выделение'
+            }`;
+            
+            // Обновляем активную кнопку
+            document.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn${newMode.charAt(0).toUpperCase() + newMode.slice(1)}`).classList.add('active');
+        }
+        
+        // Преобразование координат с учетом масштаба и смещения
+        function transformPoint(x, y) {
+            return {
+                x: (x - offsetX) / scale,
+                y: (y - offsetY) / scale
+            };
+        }
+        
+        // Обратное преобразование
+        function inverseTransform(x, y) {
+            return {
+                x: x * scale + offsetX,
+                y: y * scale + offsetY
+            };
+        }
+        
+        // Отрисовка
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Сохраняем состояние
+            ctx.save();
+            
+            // Применяем трансформации
+            ctx.translate(offsetX, offsetY);
+            ctx.scale(scale, scale);
+            
+            // Рисуем сетку
+            ctx.strokeStyle = '#4a4a7a';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            for (let i = 0; i <= canvas.width / scale; i += 50) {
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height / scale);
+            }
+            for (let i = 0; i <= canvas.height / scale; i += 50) {
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width / scale, i);
+            }
+            ctx.stroke();
+            
+            // Рисуем точки
+            points.forEach((point, index) => {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+                
+                if (selectedPoints.includes(index)) {
+                    ctx.fillStyle = '#e94560';
+                } else {
+                    ctx.fillStyle = '#4ecdc4';
+                }
+                
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+            
+            // Восстанавливаем состояние
+            ctx.restore();
+        }
+        
+        // Обработчики мыши
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastX = e.offsetX;
+            lastY = e.offsetY;
+            
+            if (mode === 'draw') {
+                const point = transformPoint(lastX, lastY);
+                points.push(point);
+                draw();
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            const x = e.offsetX;
+            const y = e.offsetY;
+            
+            // Обновляем координаты
+            const worldPos = transformPoint(x, y);
+            coordsEl.textContent = `Координаты: экран (${x}, ${y}) | мир (${worldPos.x.toFixed(0)}, ${worldPos.y.toFixed(0)})`;
+            
+            // Поиск точки под курсором
+            const hoveredPoint = points.findIndex(p => {
+                const screenPos = inverseTransform(p.x, p.y);
+                const dist = Math.hypot(screenPos.x - x, screenPos.y - y);
+                return dist < 10;
+            });
+            
+            if (hoveredPoint !== -1) {
+                tooltip.style.display = 'block';
+                tooltip.style.left = (x + 20) + 'px';
+                tooltip.style.top = (y - 20) + 'px';
+                tooltip.textContent = `Точка ${hoveredPoint + 1}: (${points[hoveredPoint].x.toFixed(0)}, ${points[hoveredPoint].y.toFixed(0)})`;
+            } else {
+                tooltip.style.display = 'none';
+            }
+            
+            if (isDragging) {
+                if (mode === 'pan') {
+                    // Перемещение
+                    offsetX += (x - lastX);
+                    offsetY += (y - lastY);
+                    lastX = x;
+                    lastY = y;
+                    draw();
+                } else if (mode === 'select') {
+                    // Выделение прямоугольником (упрощенно)
+                }
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+            tooltip.style.display = 'none';
+        });
+        
+        canvas.addEventListener('click', (e) => {
+            if (mode === 'select') {
+                const x = e.offsetX;
+                const y = e.offsetY;
+                
+                // Поиск ближайшей точки
+                let minDist = Infinity;
+                let selectedIndex = -1;
+                
+                points.forEach((p, index) => {
+                    const screenPos = inverseTransform(p.x, p.y);
+                    const dist = Math.hypot(screenPos.x - x, screenPos.y - y);
+                    if (dist < minDist && dist < 10) {
+                        minDist = dist;
+                        selectedIndex = index;
+                    }
+                });
+                
+                if (selectedIndex !== -1) {
+                    if (selectedPoints.includes(selectedIndex)) {
+                        selectedPoints = selectedPoints.filter(i => i !== selectedIndex);
+                    } else {
+                        selectedPoints.push(selectedIndex);
+                    }
+                    draw();
+                }
+            }
+        });
+        
+        // Зум
+        function zoom(factor) {
+            scale *= factor;
+            draw();
+        }
+        
+        // Сброс вида
+        function resetView() {
+            scale = 1;
+            offsetX = 0;
+            offsetY = 0;
+            draw();
+        }
+        
+        // Начальная отрисовка
+        draw();
+    </script>
+</body>
+</html>
