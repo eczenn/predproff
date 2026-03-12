@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Интерактивная карта Марса</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .app {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #e94560;
+            margin-bottom: 20px;
+        }
+        
+        .main-panel {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+        }
+        
+        .map-container {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        
+        #marsMap {
+            width: 100%;
+            height: auto;
+            border: 3px solid #0f3460;
+            border-radius: 4px;
+            cursor: crosshair;
+            image-rendering: pixelated;
+        }
+        
+        .control-panel {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .section {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        
+        .section h3 {
+            color: #e94560;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #ff6b8b;
+            transform: translateY(-2px);
+        }
+        
+        button.active {
+            background: #4CAF50;
+        }
+        
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .color-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .stats {
+            background: #1a1a2e;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .coordinates {
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #e94560;
+        }
+        
+        #status {
+            padding: 10px;
+            background: #1a1a2e;
+            border-radius: 4px;
+            font-size: 0.9em;
+            min-height: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <h1>🚀 Интерактивная карта Марса</h1>
+        
+        <div class="main-panel">
+            <!-- Карта -->
+            <div class="map-container">
+                <canvas id="marsMap" width="800" height="800"></canvas>
+            </div>
+            
+            <!-- Панель управления -->
+            <div class="control-panel">
+                <div class="section">
+                    <h3>🎮 Управление отображением</h3>
+                    <button id="btnModules" onclick="toggleModules()">📍 Показать модули</button>
+                    <button id="btnStations" onclick="toggleStations()">📡 Показать станции</button>
+                    <button id="btnCoverage" onclick="toggleCoverage()">🌐 Показать покрытие</button>
+                    <button onclick="resetView()">🔄 Сбросить вид</button>
+                </div>
+                
+                <div class="section">
+                    <h3>📊 Легенда</h3>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="color-box" style="background: #00ff00;"></div>
+                            <span>Передатчик (Sender)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="color-box" style="background: #0000ff;"></div>
+                            <span>Приемник (Listener)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="color-box" style="background: #ffaa00;"></div>
+                            <span>Станция Купер</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="color-box" style="background: #ff5500;"></div>
+                            <span>Станция Энгель</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="color-box" style="background: rgba(255,255,0,0.3); border: 2px solid yellow;"></div>
+                            <span>Зона покрытия</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>📈 Статистика</h3>
+                    <div class="stats">
+                        <div class="stat-row">
+                            <span>Станций Купер:</span>
+                            <span id="statCuper">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Станций Энгель:</span>
+                            <span id="statEngel">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Общая стоимость:</span>
+                            <span id="statCost">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Координаты курсора:</span>
+                            <span id="cursorCoords" class="coordinates">(0, 0)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>📝 Статус</h3>
+                    <div id="status">
+                        Карта загружена. Используйте кнопки для отображения объектов.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Получаем canvas и контекст
+        const canvas = document.getElementById('marsMap');
+        const ctx = canvas.getContext('2d');
+        
+        // Состояние приложения
+        const state = {
+            map: null,
+            modules: {
+                sender: { x: 200, y: 200 },
+                listener: { x: 600, y: 600 }
+            },
+            stations: [
+                { type: 'cuper', x: 150, y: 150, radius: 32, cost: 100 },
+                { type: 'cuper', x: 400, y: 300, radius: 32, cost: 100 },
+                { type: 'engel', x: 500, y: 500, radius: 64, cost: 250 },
+                { type: 'engel', x: 300, y: 600, radius: 64, cost: 250 }
+            ],
+            showModules: false,
+            showStations: false,
+            showCoverage: false
+        };
+        
+        // Цветовая схема для карты
+        const mapColors = {
+            low: [0, 0, 0],    // Темно-зеленый
+            mid: [127, 127, 127],   // Коричневый
+            high: [255, 255, 255] // Белый
+        };
+        
+        // ========== Генерация карты ==========
+        function generateMap() {
+            const map = [];
+            for (let y = 0; y < 800; y++) {
+                const row = [];
+                for (let x = 0; x < 800; x++) {
+                    // Создаем интересный рельеф с горами и долинами
+                    const nx = x / 800 - 0.5;
+                    const ny = y / 800 - 0.5;
+                    
+                    // Основной рельеф
+                    let height = 128;
+                    
+                    // Горные хребты
+                    height += Math.sin(nx * 20) * Math.cos(ny * 20) * 50;
+                    height += Math.sin(nx * 40 + 2) * Math.cos(ny * 30 + 3) * 30;
+                    
+                    // Большая гора в центре
+                    const distFromCenter = Math.sqrt(nx*nx + ny*ny);
+                    height += Math.max(0, 80 * (1 - distFromCenter * 2));
+                    
+                    // Кратеры
+                    const crater1 = Math.sin(nx * 50) * Math.cos(ny * 50) * 40;
+                    const crater2 = Math.sin(nx * 80 + 5) * Math.cos(ny * 80 + 7) * 20;
+                    height += crater1 + crater2;
+                    
+                    // Добавляем немного шума
+                    height += (Math.random() - 0.5) * 10;
+                    
+                    row.push(Math.floor(Math.max(0, Math.min(255, height))));
+                }
+                map.push(row);
+            }
+            return map;
+        }
+        
+        // ========== Отрисовка карты ==========
+        function drawMap() {
+            if (!state.map) return;
+            
+            const imageData = ctx.createImageData(800, 800);
+            
+            for (let y = 0; y < 800; y++) {
+                for (let x = 0; x < 800; x++) {
+                    const index = (y * 800 + x) * 4;
+                    const height = state.map[y][x];
+                    
+                    // Получаем цвет по высоте
+                    let r, g, b;
+                    
+                    if (height < 85) {
+                        const t = height / 85;
+                        r = Math.floor(mapColors.low[0] + (mapColors.mid[0] - mapColors.low[0]) * t);
+                        g = Math.floor(mapColors.low[1] + (mapColors.mid[1] - mapColors.low[1]) * t);
+                        b = Math.floor(mapColors.low[2] + (mapColors.mid[2] - mapColors.low[2]) * t);
+                    } else if (height < 170) {
+                        const t = (height - 85) / 85;
+                        r = Math.floor(mapColors.mid[0] + (mapColors.high[0] - mapColors.mid[0]) * t);
+                        g = Math.floor(mapColors.mid[1] + (mapColors.high[1] - mapColors.mid[1]) * t);
+                        b = Math.floor(mapColors.mid[2] + (mapColors.high[2] - mapColors.mid[2]) * t);
+                    } else {
+                        const t = (height - 170) / 85;
+                        r = Math.floor(mapColors.high[0] + (255 - mapColors.high[0]) * t);
+                        g = Math.floor(mapColors.high[1] + (255 - mapColors.high[1]) * t);
+                        b = Math.floor(mapColors.high[2] + (255 - mapColors.high[2]) * t);
+                    }
+                    
+                    imageData.data[index] = r;
+                    imageData.data[index + 1] = g;
+                    imageData.data[index + 2] = b;
+                    imageData.data[index + 3] = 255;
+                }
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            
+            // Рисуем дополнительные объекты
+            if (state.showModules) drawModules();
+            if (state.showStations) drawStations();
+            if (state.showCoverage) drawCoverage();
+        }
+        
+        // ========== Рисование модулей ==========
+        function drawModules() {
+            // Передатчик (красный)
+            ctx.beginPath();
+            ctx.arc(state.modules.sender.x, state.modules.sender.y, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#00ff00';
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Подпись
+            ctx.font = 'bold 12px Arial';
+            ctx.fillStyle = 'grey';
+            ctx.fillText('Sender', state.modules.sender.x + 15, state.modules.sender.y - 10);
+            
+            // Приемник (синий)
+            ctx.beginPath();
+            ctx.arc(state.modules.listener.x, state.modules.listener.y, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#0000ff';
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.fillStyle = 'white';
+            ctx.fillText('Listener', state.modules.listener.x + 15, state.modules.listener.y - 10);
+        }
+        
+        // ========== Рисование станций ==========
+        function drawStations() {
+            state.stations.forEach((station, index) => {
+                // Станции Купер (желтые)
+                if (station.type === 'cuper') {
+                    ctx.fillStyle = '#ffaa00';
+                } 
+                // Станции Энгель (оранжевые)
+                else {
+                    ctx.fillStyle = '#ff5500';
+                }
+                
+                ctx.beginPath();
+                ctx.arc(station.x, station.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Номер станции
+                ctx.font = '10px Arial';
+                ctx.fillStyle = 'white';
+                ctx.fillText(index + 1, station.x - 3, station.y - 10);
+            });
+        }
+        
+        // ========== Рисование зон покрытия ==========
+        function drawCoverage() {
+            state.stations.forEach(station => {
+                // Полупрозрачная зона покрытия
+                ctx.beginPath();
+                ctx.arc(station.x, station.y, station.radius, 0, Math.PI * 2);
+                
+                if (station.type === 'cuper') {
+                    ctx.fillStyle = 'rgba(255, 170, 0, 0.2)';
+                    ctx.strokeStyle = 'rgba(255, 170, 0, 0.5)';
+                } else {
+                    ctx.fillStyle = 'rgba(255, 85, 0, 0.2)';
+                    ctx.strokeStyle = 'rgba(255, 85, 0, 0.5)';
+                }
+                
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+        }
+        
+        // ========== Обновление статистики ==========
+        function updateStats() {
+            const cuperCount = state.stations.filter(s => s.type === 'cuper').length;
+            const engelCount = state.stations.filter(s => s.type === 'engel').length;
+            const totalCost = state.stations.reduce((sum, s) => sum + s.cost, 0);
+            
+            document.getElementById('statCuper').textContent = cuperCount;
+            document.getElementById('statEngel').textContent = engelCount;
+            document.getElementById('statCost').textContent = totalCost;
+        }
+        
+        // ========== Обработчики кнопок ==========
+        window.toggleModules = function() {
+            state.showModules = !state.showModules;
+            const btn = document.getElementById('btnModules');
+            btn.textContent = state.showModules ? '📍 Скрыть модули' : '📍 Показать модули';
+            btn.classList.toggle('active');
+            drawMap();
+            document.getElementById('status').textContent = 
+                state.showModules ? 'Модули отображены' : 'Модули скрыты';
+        };
+        
+        window.toggleStations = function() {
+            state.showStations = !state.showStations;
+            const btn = document.getElementById('btnStations');
+            btn.textContent = state.showStations ? '📡 Скрыть станции' : '📡 Показать станции';
+            btn.classList.toggle('active');
+            drawMap();
+            document.getElementById('status').textContent = 
+                state.showStations ? 'Станции отображены' : 'Станции скрыты';
+        };
+        
+        window.toggleCoverage = function() {
+            state.showCoverage = !state.showCoverage;
+            const btn = document.getElementById('btnCoverage');
+            btn.textContent = state.showCoverage ? '🌐 Скрыть покрытие' : '🌐 Показать покрытие';
+            btn.classList.toggle('active');
+            drawMap();
+            document.getElementById('status').textContent = 
+                state.showCoverage ? 'Зоны покрытия отображены' : 'Зоны покрытия скрыты';
+        };
+        
+        window.resetView = function() {
+            state.showModules = false;
+            state.showStations = false;
+            state.showCoverage = false;
+            
+            document.getElementById('btnModules').textContent = '📍 Показать модули';
+            document.getElementById('btnStations').textContent = '📡 Показать станции';
+            document.getElementById('btnCoverage').textContent = '🌐 Показать покрытие';
+            
+            document.getElementById('btnModules').classList.remove('active');
+            document.getElementById('btnStations').classList.remove('active');
+            document.getElementById('btnCoverage').classList.remove('active');
+            
+            drawMap();
+            document.getElementById('status').textContent = 'Вид сброшен';
+        };
+        
+        // ========== Отслеживание мыши ==========
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const x = Math.floor((e.clientX - rect.left) * scaleX);
+            const y = Math.floor((e.clientY - rect.top) * scaleY);
+            
+            document.getElementById('cursorCoords').textContent = `(${x}, ${y})`;
+            
+            if (state.map && x >= 0 && x < 800 && y >= 0 && y < 800) {
+                const height = state.map[y][x];
+                canvas.title = `Координаты: (${x}, ${y}), Высота: ${height}`;
+            }
+        });
+        
+        // ========== Инициализация ==========
+        state.map = generateMap();
+        drawMap();
+        updateStats();
+        
+        // Сохраняем в localStorage для демонстрации
+        localStorage.setItem('mars_map_demo', JSON.stringify({
+            timestamp: Date.now(),
+            map: 'Сгенерировано в демо-режиме'
+        }));
+    </script>
+</body>
+</html>

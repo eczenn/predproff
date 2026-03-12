@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Canvas: Основы рисования</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        
+        canvas {
+            border: 3px solid #333;
+            background: white;
+            margin: 10px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #162c3a;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #077bc8;
+        }
+        
+        button.clear {
+            background: #e74c3c;
+        }
+        
+        button.clear:hover {
+            background: #c0392b;
+        }
+        
+        .info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 Canvas: Основы рисования</h1>
+    
+    <div class="controls">
+        <button onclick="drawRect()">📦 Прямоугольник</button>
+        <button onclick="drawCircle()">⚪ Круг</button>
+        <button onclick="drawLine()">📏 Линия</button>
+        <button onclick="drawText()">📝 Текст</button>
+        <button onclick="drawGradient()">🌈 Градиент</button>
+        <button onclick="clearCanvas()" class="clear">🗑️ Очистить</button>
+    </div>
+    
+    <canvas id="myCanvas" width="800" height="400"></canvas>
+    
+    <div class="info" id="info">
+        Попробуйте разные кнопки! 🖌️
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
+        const info = document.getElementById('info');
+        
+        // Начальные настройки
+        ctx.strokeStyle = '#3498db';  // Цвет линий
+        ctx.fillStyle = '#3498db';    // Цвет заливки
+        ctx.lineWidth = 3;            // Толщина линий
+        ctx.font = '20px Arial';      // Шрифт для текста
+        
+        // Функция для обновления информации
+        function showInfo(text) {
+            info.innerHTML = `🖌️ ${text}`;
+        }
+        
+        // 1. РИСОВАНИЕ ПРЯМОУГОЛЬНИКА
+        window.drawRect = () => {
+            clearCanvas();
+            
+            // fillRect(x, y, width, height) - закрашенный прямоугольник
+            ctx.fillStyle = '#3498db';
+            ctx.fillRect(50, 50, 200, 100);
+            
+            // strokeRect(x, y, width, height) - только контур
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(300, 50, 200, 100);
+            
+            // Прямоугольник со скругленными углами
+            ctx.fillStyle = '#27ae60';
+            ctx.beginPath();
+            // roundRect(x, y, width, height, radius) - нужно создать вручную
+            ctx.roundRect(550, 50, 200, 100, 20);
+            ctx.fill();
+            
+            showInfo('Нарисованы прямоугольники: закрашенный, контурный, со скруглением');
+        };
+        
+        // Вспомогательная функция для скругленного прямоугольника
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            this.moveTo(x + r, y);
+            this.lineTo(x + w - r, y);
+            this.quadraticCurveTo(x + w, y, x + w, y + r);
+            this.lineTo(x + w, y + h - r);
+            this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            this.lineTo(x + r, y + h);
+            this.quadraticCurveTo(x, y + h, x, y + h - r);
+            this.lineTo(x, y + r);
+            this.quadraticCurveTo(x, y, x + r, y);
+            return this;
+        };
+        
+        // 2. РИСОВАНИЕ КРУГА
+        window.drawCircle = () => {
+            clearCanvas();
+            
+            // Круг с заливкой
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(150, 200, 80, 0, Math.PI * 2); // (x, y, радиус, начальный угол, конечный угол)
+            ctx.fill();
+            
+            // Круг с контуром
+            ctx.strokeStyle = '#27ae60';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.arc(400, 200, 80, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Полукруг
+            ctx.fillStyle = '#f39c12';
+            ctx.beginPath();
+            ctx.arc(650, 200, 80, 0, Math.PI); // Только половина круга
+            ctx.fill();
+            
+            showInfo('Нарисованы круги: закрашенный, контурный, полукруг');
+        };
+        
+        // 3. РИСОВАНИЕ ЛИНИИ
+        window.drawLine = () => {
+            clearCanvas();
+            
+            // Простая линия
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(50, 50);     // Начальная точка
+            ctx.lineTo(250, 350);   // Конечная точка
+            ctx.stroke();
+            
+            // Ломаная линия
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(300, 100);
+            ctx.lineTo(400, 200);
+            ctx.lineTo(350, 300);
+            ctx.lineTo(450, 350);
+            ctx.stroke();
+            
+            // Пунктирная линия
+            ctx.strokeStyle = '#27ae60';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([10, 5]); // 10px линия, 5px пробел
+            ctx.beginPath();
+            ctx.moveTo(500, 100);
+            ctx.lineTo(700, 300);
+            ctx.stroke();
+            
+            // Возвращаем обычную линию
+            ctx.setLineDash([]);
+            
+            showInfo('Нарисованы линии: прямая, ломаная, пунктирная');
+        };
+        
+        // 4. РИСОВАНИЕ ТЕКСТА
+        window.drawText = () => {
+            clearCanvas();
+            
+            // Обычный текст
+            ctx.font = '30px Arial';
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillText('Привет, Марс!', 50, 100);
+            
+            // Текст с обводкой
+            ctx.font = '40px "Courier New"';
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.strokeText('Mars', 50, 200);
+            
+            // Текст с тенью
+            ctx.shadowColor = '#888';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 5;
+            ctx.shadowOffsetY = 5;
+            ctx.font = 'bold 50px Arial';
+            ctx.fillStyle = '#27ae60';
+            ctx.fillText('2026', 50, 300);
+            
+            // Убираем тень
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            
+            showInfo('Нарисован текст: обычный, с обводкой, с тенью');
+        };
+        
+        // 5. РИСОВАНИЕ ГРАДИЕНТА
+        window.drawGradient = () => {
+            clearCanvas();
+            
+            // Линейный градиент
+            const linearGradient = ctx.createLinearGradient(50, 50, 250, 250);
+            linearGradient.addColorStop(0, '#3498db');   // Начальный цвет
+            linearGradient.addColorStop(0.5, '#e74c3c'); // Средний цвет
+            linearGradient.addColorStop(1, '#f1c40f');   // Конечный цвет
+            
+            ctx.fillStyle = linearGradient;
+            ctx.fillRect(50, 50, 200, 200);
+            
+            // Радиальный градиент
+            const radialGradient = ctx.createRadialGradient(400, 150, 20, 450, 200, 100);
+            radialGradient.addColorStop(0, '#2ecc71');
+            radialGradient.addColorStop(0.5, '#f39c12');
+            radialGradient.addColorStop(1, '#e74c3c');
+            
+            ctx.fillStyle = radialGradient;
+            ctx.beginPath();
+            ctx.arc(450, 200, 100, 0, Math.PI * 2);
+            ctx.fill();
+            
+            showInfo('Нарисованы градиенты: линейный и радиальный');
+        };
+        
+        // 6. ОЧИСТКА ХОЛСТА
+        window.clearCanvas = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            showInfo('Холст очищен. Нажмите любую кнопку!');
+        };
+        
+        // 7. РИСОВАНИЕ ПО КООРДИНАТАМ МЫШИ (интерактив)
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            lastX = e.offsetX;
+            lastY = e.offsetY;
+            
+            // Начинаем новый путь
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            
+            const x = e.offsetX;
+            const y = e.offsetY;
+            
+            // Рисуем линию
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 3;
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            
+            // Начинаем новый сегмент для плавности
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            
+            lastX = x;
+            lastY = y;
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isDrawing = false;
+        });
+        
+        showInfo('🖱️ Можно рисовать мышкой! Нажмите и тащите по холсту');
+    </script>
+</body>
+</html>

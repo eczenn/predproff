@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Canvas: Работа с пикселями</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        
+        canvas {
+            border: 3px solid #333;
+            background: white;
+            margin: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .info-panel {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .stat {
+            margin: 10px 0;
+            padding: 10px;
+            background: #ecf0f1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🖼️ Canvas: Работа с пикселями</h1>
+    
+    <div class="container">
+        <div>
+            <canvas id="pixelCanvas" width="256" height="256"></canvas>
+        </div>
+        
+        <div class="info-panel">
+            <h3>📊 Информация о карте</h3>
+            
+            <div class="stat">
+                <strong>Размер:</strong> <span id="size">256x256 пикселей</span>
+            </div>
+            
+            <div class="stat">
+                <strong>Диапазон высот:</strong><br>
+                Минимум: <span id="minVal">0</span><br>
+                Максимум: <span id="maxVal">255</span><br>
+                Среднее: <span id="avgVal">0</span>
+            </div>
+            
+            <div class="stat">
+                <strong>Под курсором:</strong><br>
+                Координаты: (<span id="mouseX">0</span>, <span id="mouseY">0</span>)<br>
+                Высота: <span id="mouseHeight">0</span>
+            </div>
+            
+            <div class="controls">
+                <button onclick="generateRandomMap()">🎲 Случайная карта</button>
+                <button onclick="generateGradientMap()">🌈 Градиент</button>
+                <button onclick="generateCheckerboard()">🏁 Шахматная доска</button>
+                <button onclick="generateMountains()">🏔️ Горы (синус)</button>
+                <button onclick="clearToColor()">⚪ Очистить</button>
+            </div>
+            
+            <div class="stat">
+                <strong>🎮 Режим рисования:</strong>
+                <select id="drawMode" onchange="changeDrawMode()">
+                    <option value="height">По высоте (тепловая карта)</option>
+                    <option value="red">Красный канал</option>
+                    <option value="green">Зеленый канал</option>
+                    <option value="blue">Синий канал</option>
+                    <option value="white">Белый канал</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('pixelCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Массив для хранения карты высот (256x256)
+        let heightMap = new Array(256).fill(0).map(() => new Array(256).fill(0));
+        
+        // Элементы для отображения статистики
+        const minSpan = document.getElementById('minVal');
+        const maxSpan = document.getElementById('maxVal');
+        const avgSpan = document.getElementById('avgVal');
+        const mouseXSpan = document.getElementById('mouseX');
+        const mouseYSpan = document.getElementById('mouseY');
+        const mouseHeightSpan = document.getElementById('mouseHeight');
+        
+        // 1. ФУНКЦИЯ ОТРИСОВКИ КАРТЫ ПО ПИКСЕЛЯМ
+        function renderMap() {
+            // Получаем данные изображения
+            const imageData = ctx.createImageData(256, 256);
+            const data = imageData.data; // Массив [R,G,B,A, R,G,B,A, ...]
+            
+            // Заполняем пиксели
+            for (let y = 0; y < 256; y++) {
+                for (let x = 0; x < 256; x++) {
+                    const height = heightMap[y][x];
+                    const index = (y * 256 + x) * 4; // Каждый пиксель - 4 байта (R,G,B,A)
+                    
+                    const mode = document.getElementById('drawMode').value;
+                    
+                    if (mode === 'height') {
+                        // Тепловая карта: низкие - синие, средние - зеленые, высокие - красные
+                        const r = Math.min(255, height * 2);      // Красный растет с высотой
+                        const g = Math.min(255, height);          // Зеленый средний
+                        const b = Math.min(255, 255 - height);    // Синий падает с высотой
+                        
+                        data[index] = r;          // R
+                        data[index + 1] = g;      // G
+                        data[index + 2] = b;      // B
+                        data[index + 3] = 255;    // A (полная непрозрачность)
+                    } else if (mode === 'red') {
+                        // Только красный канал
+                        data[index] = height;
+                        data[index + 1] = 0;
+                        data[index + 2] = 0;
+                        data[index + 3] = 255;
+                    } else if (mode === 'green') {
+                        // Только зеленый канал
+                        data[index] = 0;
+                        data[index + 1] = height;
+                        data[index + 2] = 0;
+                        data[index + 3] = 255;
+                    } else if (mode === 'blue') {
+                        // Только синий канал
+                        data[index] = 0;
+                        data[index + 1] = 0;
+                        data[index + 2] = height;
+                        data[index + 3] = 255;
+                    } else if (mode === 'white') {
+                        data[index] = height;
+                        data[index + 1] = height;
+                        data[index + 2] = height;
+                        data[index + 3] = 255;
+                    }
+                }
+            }
+            
+            // Рисуем изображение
+            ctx.putImageData(imageData, 0, 0);
+            
+            // Обновляем статистику
+            updateStats();
+        }
+        
+        // 2. ФУНКЦИИ ДЛЯ ГЕНЕРАЦИИ РАЗНЫХ КАРТ
+        
+        // Случайная карта (белый шум)
+        window.generateRandomMap = () => {
+            for (let y = 0; y < 256; y++) {
+                for (let x = 0; x < 256; x++) {
+                    heightMap[y][x] = Math.floor(Math.random() * 256);
+                }
+            }
+            renderMap();
+        };
+        
+        // Градиент
+        window.generateGradientMap = () => {
+            for (let y = 0; y < 256; y++) {
+                for (let x = 0; x < 256; x++) {
+                    // Градиент по диагонали
+                    heightMap[y][x] = Math.floor((x + y) / 2);
+                }
+            }
+            renderMap();
+        };
+        
+        // Шахматная доска
+        window.generateCheckerboard = () => {
+            for (let y = 0; y < 256; y++) {
+                for (let x = 0; x < 256; x++) {
+                    // Шахматная доска 32x32
+                    const cellX = Math.floor(x / 32);
+                    const cellY = Math.floor(y / 32);
+                    heightMap[y][x] = (cellX + cellY) % 2 === 0 ? 255 : 0;
+                }
+            }
+            renderMap();
+        };
+        
+        // Горы (синусоида)
+        window.generateMountains = () => {
+            for (let y = 0; y < 256; y++) {
+                for (let x = 0; x < 256; x++) {
+                    // Комбинация синусов для создания "горного" рельефа
+                    const height = Math.floor(
+                        128 + 
+                        64 * Math.sin(x / 20) * Math.cos(y / 20) +
+                        32 * Math.sin(x / 10) +
+                        32 * Math.cos(y / 15)
+                    );
+                    heightMap[y][x] = Math.max(0, Math.min(255, height));
+                }
+            }
+            renderMap();
+        };
+        
+        // Очистить (залить одним цветом)
+        window.clearToColor = () => {
+            const color = prompt("Введите значение высоты (0-255):", "128");
+            const val = parseInt(color) || 128;
+            
+            for (let y = 0; y < 256; y++) {
+                for (let x = 0; x < 256; x++) {
+                    heightMap[y][x] = val;
+                }
+            }
+            renderMap();
+        };
+        
+        // 3. ОБНОВЛЕНИЕ СТАТИСТИКИ
+        function updateStats() {
+            let min = 256, max = -1, sum = 0;
+            
+            for (let y = 0; y < 256; y++) {
+                for (let x = 0; x < 256; x++) {
+                    const val = heightMap[y][x];
+                    min = Math.min(min, val);
+                    max = Math.max(max, val);
+                    sum += val;
+                }
+            }
+            
+            const avg = Math.round(sum / (256 * 256));
+            
+            minSpan.textContent = min;
+            maxSpan.textContent = max;
+            avgSpan.textContent = avg;
+        }
+        
+        // 4. ОТСЛЕЖИВАНИЕ МЫШИ
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const x = Math.floor((e.clientX - rect.left) * scaleX);
+            const y = Math.floor((e.clientY - rect.top) * scaleY);
+            
+            if (x >= 0 && x < 256 && y >= 0 && y < 256) {
+                mouseXSpan.textContent = x;
+                mouseYSpan.textContent = y;
+                mouseHeightSpan.textContent = heightMap[y][x];
+            }
+        });
+        
+        // 5. РИСОВАНИЕ КИСТЬЮ
+        let isDrawing = false;
+        let brushSize = 5;
+        
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const x = Math.floor((e.clientX - rect.left) * scaleX);
+            const y = Math.floor((e.clientY - rect.top) * scaleY);
+            
+            if (x >= 0 && x < 256 && y >= 0 && y < 256) {
+                // Рисуем круг кистью
+                for (let dy = -brushSize; dy <= brushSize; dy++) {
+                    for (let dx = -brushSize; dx <= brushSize; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        
+                        // Проверяем границы и расстояние
+                        if (nx >= 0 && nx < 256 && ny >= 0 && ny < 256) {
+                            const dist = Math.sqrt(dx*dx + dy*dy);
+                            if (dist <= brushSize) {
+                                // Добавляем "горку"
+                                heightMap[ny][nx] = Math.min(255, heightMap[ny][nx] + 5);
+                            }
+                        }
+                    }
+                }
+                
+                // Быстрая перерисовка только измененной области
+                renderMap();
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isDrawing = false;
+        });
+        
+        // Смена режима отображения
+        window.changeDrawMode = () => {
+            renderMap();
+        };
+        
+        // Инициализация: рисуем градиент
+        generateMountains();
+    </script>
+</body>
+</html>
