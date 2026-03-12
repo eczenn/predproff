@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тест хранилища</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f4f4f4; padding: 15px; border-radius: 8px; overflow: auto; }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+        .stat-card { background: #e9ecef; padding: 15px; border-radius: 8px; }
+        .success { color: green; }
+        .warning { color: orange; }
+        .danger { color: red; }
+    </style>
+</head>
+<body>
+    <h1>💾 Тестирование localStorage</h1>
+    
+    <div class="stats">
+        <div class="stat-card">
+            <h3>Генерация тестовых данных</h3>
+            <button onclick="generateMap()">🗺️ Создать тестовую карту</button>
+            <button onclick="generateModules()">📍 Создать тестовые модули</button>
+        </div>
+        
+        <div class="stat-card">
+            <h3>Операции с хранилищем</h3>
+            <button onclick="saveAll()">💾 Сохранить всё</button>
+            <button onclick="loadAll()">📂 Загрузить всё</button>
+            <button onclick="clearAll()">🗑️ Очистить всё</button>
+        </div>
+    </div>
+    
+    <div>
+        <h3>Проверка конкретных ключей</h3>
+        <button onclick="checkMap()">🔍 Проверить карту</button>
+        <button onclick="checkModules()">🔍 Проверить модули</button>
+        <button onclick="showStats()">📊 Показать статистику</button>
+    </div>
+    
+    <h3>Результат:</h3>
+    <pre id="result">Готов к тестированию...</pre>
+    
+    <script type="module">
+        import { marsStore } from './stores/marsStore.js';
+        import { getStorageInfo } from './utils/storage.js';
+        
+        // Глобальные переменные для тестов
+        window.testMap = null;
+        window.testModules = null;
+        
+        // Генерация тестовой карты 256x256
+        window.generateMap = () => {
+            const result = document.getElementById('result');
+            result.innerHTML = '⏳ Генерация карты...';
+            
+            // Создаем тестовую карту с градиентом
+            const map = [];
+            for (let y = 0; y < 256; y++) {
+                const row = [];
+                for (let x = 0; x < 256; x++) {
+                    // Красивый градиент + шум
+                    const height = Math.floor(
+                        (Math.sin(x / 20) * Math.cos(y / 20) + 1) * 127 + 
+                        Math.random() * 20
+                    );
+                    row.push(Math.min(255, Math.max(0, height)));
+                }
+                map.push(row);
+            }
+            
+            window.testMap = map;
+            result.innerHTML = '✅ Тестовая карта создана!\n' +
+                `Размер: ${map.length}x${map[0].length}\n` +
+                `Диапазон высот: 0-255`;
+        };
+        
+        // Генерация тестовых модулей
+        window.generateModules = () => {
+            window.testModules = {
+                sender: { x: 100, y: 100 },
+                listener: { x: 200, y: 150 },
+                prices: [100, 250]
+            };
+            
+            document.getElementById('result').innerHTML = 
+                '✅ Тестовые модули созданы:\n' +
+                JSON.stringify(window.testModules, null, 2);
+        };
+        
+        // Сохранить всё
+        window.saveAll = () => {
+            if (!window.testMap && !window.testModules) {
+                alert('Сначала создайте тестовые данные!');
+                return;
+            }
+            
+            if (window.testMap) {
+                marsStore.saveMap(window.testMap);
+            }
+            
+            if (window.testModules) {
+                marsStore.saveModuleCoordinates(
+                    { 
+                        sender: window.testModules.sender, 
+                        listener: window.testModules.listener 
+                    },
+                    window.testModules.prices
+                );
+            }
+            
+            marsStore.saveApiUrl('https://olimp.miet.ru/ppo_it/api');
+            
+            document.getElementById('result').innerHTML = '✅ Все данные сохранены!';
+        };
+        
+        // Загрузить всё
+        window.loadAll = async () => {
+            const map = marsStore.loadMap();
+            const modules = marsStore.loadModuleCoordinates();
+            const url = marsStore.loadApiUrl();
+            
+            let output = '📂 Загруженные данные:\n\n';
+            
+            if (map) {
+                output += `🗺️ Карта: ${map.length}x${map[0].length}\n`;
+                output += `   Min: ${Math.min(...map.flat())}, Max: ${Math.max(...map.flat())}\n`;
+            } else {
+                output += '🗺️ Карта: не найдена\n';
+            }
+            
+            if (modules) {
+                output += `📍 Модули: sender (${modules.sender.x},${modules.sender.y}), ` +
+                         `listener (${modules.listener.x},${modules.listener.y})\n`;
+            } else {
+                output += '📍 Модули: не найдены\n';
+            }
+            
+            if (url) {
+                output += `🔗 API URL: ${url}\n`;
+            } else {
+                output += '🔗 API URL: не сохранен\n';
+            }
+            
+            document.getElementById('result').innerHTML = output;
+        };
+        
+        // Очистить всё
+        window.clearAll = () => {
+            marsStore.clearAll();
+            document.getElementById('result').innerHTML = '🗑️ Все данные очищены';
+        };
+        
+        // Проверить карту
+        window.checkMap = () => {
+            const map = marsStore.loadMap();
+            if (map) {
+                document.getElementById('result').innerHTML = 
+                    '✅ Карта найдена!\n' +
+                    `Размер: ${map.length}x${map[0].length}\n` +
+                    `Первые 5 значений: ${map[0].slice(0, 5).join(', ')}`;
+            } else {
+                document.getElementById('result').innerHTML = '❌ Карта не найдена';
+            }
+        };
+        
+        // Проверить модули
+        window.checkModules = () => {
+            const modules = marsStore.loadModuleCoordinates();
+            if (modules) {
+                document.getElementById('result').innerHTML = 
+                    '✅ Модули найдены!\n' +
+                    JSON.stringify(modules, null, 2);
+            } else {
+                document.getElementById('result').innerHTML = '❌ Модули не найдены';
+            }
+        };
+        
+        // Показать статистику
+        window.showStats = () => {
+            const info = getStorageInfo();
+            const stats = marsStore.getStats();
+            
+            let output = '📊 Статистика хранилища:\n\n';
+            output += `Всего записей: ${info.itemCount}\n`;
+            output += `Общий размер: ${info.totalSize}\n\n`;
+            
+            output += 'Состояние ключей:\n';
+            for (const [key, value] of Object.entries(stats)) {
+                output += `  ${key}: ${value}\n`;
+            }
+            
+            if (info.items.length > 0) {
+                output += '\nДетали:\n';
+                info.items.forEach(item => {
+                    output += `  ${item.key}: ${item.size}\n`;
+                });
+            }
+            
+            document.getElementById('result').innerHTML = output;
+        };
+    </script>
+</body>
+</html>
