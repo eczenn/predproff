@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>DOM Навигация</title>
+    <style>
+        .demo-box {
+            border: 2px solid #333;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 8px;
+        }
+        .highlight {
+            background-color: yellow;
+            border: 3px solid orange;
+        }
+        button {
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧭 Навигация по DOM</h1>
+    
+    <div id="container" class="demo-box">
+        <div id="parent" class="demo-box">
+            <p>Я родительский элемент</p>
+            <div id="child1" class="demo-box">Первый ребенок</div>
+            <div id="child2" class="demo-box">Второй ребенок</div>
+            <div id="child3" class="demo-box">Третий ребенок</div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button onclick="highlightParent()">Подсветить родителя</button>
+        <button onclick="highlightChildren()">Подсветить детей</button>
+        <button onclick="highlightNextPrev()">Подсветить соседей</button>
+        <button onclick="reset()">Сбросить</button>
+    </div>
+    
+    <div id="output" style="margin-top: 20px; padding: 10px; background: #f0f0f0;"></div>
+    
+    <script>
+        const parent = document.getElementById('parent');
+        const output = document.getElementById('output');
+        
+        function log(message) {
+            output.innerHTML += message + '<br>';
+        }
+        
+        function highlightParent() {
+            reset();
+            parent.classList.add('highlight');
+            log('📍 Родительский элемент:');
+            log(`  - ID: ${parent.id}`);
+            log(`  - Детей: ${parent.children.length}`);
+        }
+        
+        function highlightChildren() {
+            reset();
+            const children = parent.children;
+            for (let child of children) {
+                child.classList.add('highlight');
+            }
+            log('📍 Дочерние элементы:');
+            Array.from(children).forEach((child, i) => {
+                log(`  - Ребенок ${i + 1}: ${child.id}`);
+            });
+        }
+        
+        function highlightNextPrev() {
+            reset();
+            const child2 = document.getElementById('child2');
+            child2.classList.add('highlight');
+            
+            const prev = child2.previousElementSibling;
+            const next = child2.nextElementSibling;
+            
+            if (prev) {
+                prev.classList.add('highlight');
+                prev.style.backgroundColor = 'lightblue';
+                log('👈 Предыдущий элемент: ' + prev.id);
+            }
+            
+            if (next) {
+                next.classList.add('highlight');
+                next.style.backgroundColor = 'lightgreen';
+                log('👉 Следующий элемент: ' + next.id);
+            }
+            
+            log('🎯 Текущий элемент: child2');
+        }
+        
+        function reset() {
+            const all = document.querySelectorAll('.demo-box');
+            all.forEach(el => {
+                el.classList.remove('highlight');
+                el.style.backgroundColor = '';
+            });
+            output.innerHTML = '';
+        }
+    </script>
+</body>
+</html>

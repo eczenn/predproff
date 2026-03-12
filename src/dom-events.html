@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>DOM События</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .form-group {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        label { display: block; margin: 10px 0 5px; }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .error {
+            border-color: #e74c3c !important;
+            background-color: #fdf0ed;
+        }
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9em;
+            margin-top: -5px;
+            margin-bottom: 10px;
+        }
+        .success {
+            border-color: #27ae60 !important;
+            background-color: #f0fff0;
+        }
+        #livePreview {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 События и формы</h1>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <!-- Левая колонка: форма -->
+        <div class="form-group">
+            <h3>📝 Форма ввода</h3>
+            
+            <label for="name">Имя:</label>
+            <input type="text" id="name" placeholder="Введите имя">
+            
+            <label for="email">Email:</label>
+            <input type="email" id="email" placeholder="test@example.com">
+            
+            <label for="color">Любимый цвет:</label>
+            <select id="color">
+                <option value="red">Красный</option>
+                <option value="green">Зеленый</option>
+                <option value="blue">Синий</option>
+            </select>
+            
+            <label for="comment">Комментарий:</label>
+            <textarea id="comment" rows="3" placeholder="Ваш комментарий..."></textarea>
+            
+            <div style="display: flex; gap: 10px;">
+                <button id="submitBtn" style="flex: 1;">✅ Отправить</button>
+                <button id="resetBtn" style="flex: 1;">🔄 Сбросить</button>
+            </div>
+        </div>
+        
+        <!-- Правая колонка: превью и логи -->
+        <div>
+            <div class="form-group">
+                <h3>👁️ Live Preview</h3>
+                <div id="livePreview">
+                    <p><strong>Имя:</strong> <span id="previewName">—</span></p>
+                    <p><strong>Email:</strong> <span id="previewEmail">—</span></p>
+                    <p><strong>Цвет:</strong> <span id="previewColor">—</span></p>
+                    <p><strong>Комментарий:</strong> <span id="previewComment">—</span></p>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <h3>📋 Лог событий</h3>
+                <div id="eventLog" style="height: 150px; overflow-y: auto; background: #fff; padding: 10px; border: 1px solid #ccc;">
+                    Ожидание действий...
+                </div>
+                <button onclick="clearLog()" style="margin-top: 10px;">🧹 Очистить лог</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Получаем элементы
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const colorSelect = document.getElementById('color');
+        const commentTextarea = document.getElementById('comment');
+        const submitBtn = document.getElementById('submitBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        
+        // Элементы для превью
+        const previewName = document.getElementById('previewName');
+        const previewEmail = document.getElementById('previewEmail');
+        const previewColor = document.getElementById('previewColor');
+        const previewComment = document.getElementById('previewComment');
+        
+        // Лог
+        const eventLog = document.getElementById('eventLog');
+        
+        // Функция для добавления в лог
+        function addToLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            const time = new Date().toLocaleTimeString();
+            
+            entry.style.padding = '4px';
+            entry.style.margin = '2px 0';
+            entry.style.borderRadius = '4px';
+            
+            switch(type) {
+                case 'error':
+                    entry.style.backgroundColor = '#fdf0ed';
+                    entry.style.color = '#c0392b';
+                    break;
+                case 'success':
+                    entry.style.backgroundColor = '#f0fff0';
+                    entry.style.color = '#27ae60';
+                    break;
+                default:
+                    entry.style.backgroundColor = '#e3f2fd';
+            }
+            
+            entry.textContent = `[${time}] ${message}`;
+            eventLog.appendChild(entry);
+            eventLog.scrollTop = eventLog.scrollHeight;
+        }
+        
+        // 1. ОБРАБОТЧИКИ СОБЫТИЙ
+        // Разные способы навешивания обработчиков
+        
+        // Способ 1: через свойство элемента
+        nameInput.oninput = function() {
+            previewName.textContent = this.value || '—';
+            addToLog(`Имя изменено: "${this.value}"`);
+        };
+        
+        // Способ 2: через addEventListener (рекомендуемый)
+        emailInput.addEventListener('input', function() {
+            previewEmail.textContent = this.value || '—';
+            
+            // Валидация
+            if (this.value && !this.value.includes('@')) {
+                this.classList.add('error');
+                addToLog('Некорректный email', 'error');
+            } else {
+                this.classList.remove('error');
+            }
+        });
+        
+        // Обработка изменения select
+        colorSelect.addEventListener('change', function() {
+            const colors = {
+                red: '#ffebee',
+                green: '#e8f5e9',
+                blue: '#e3f2fd'
+            };
+            
+            previewColor.textContent = this.options[this.selectedIndex].text;
+            previewColor.style.color = this.value;
+            
+            // Меняем фон превью
+            document.getElementById('livePreview').style.backgroundColor = colors[this.value] || '#f9f9f9';
+            
+            addToLog(`Цвет изменен на: ${this.value}`);
+        });
+        
+        // Обработка textarea
+        commentTextarea.addEventListener('input', function() {
+            const shortComment = this.value.length > 50 
+                ? this.value.substring(0, 50) + '...' 
+                : this.value;
+            previewComment.textContent = shortComment || '—';
+        });
+        
+        // Обработка фокуса
+        nameInput.addEventListener('focus', () => {
+            addToLog('Поле "Имя" получило фокус');
+        });
+        
+        nameInput.addEventListener('blur', () => {
+            if (nameInput.value.length < 2) {
+                nameInput.classList.add('error');
+                addToLog('Имя слишком короткое', 'error');
+            } else {
+                nameInput.classList.remove('error');
+                nameInput.classList.add('success');
+            }
+        });
+        
+        // Обработка отправки формы
+        submitBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // Предотвращаем перезагрузку страницы
+            
+            // Собираем данные
+            const formData = {
+                name: nameInput.value,
+                email: emailInput.value,
+                color: colorSelect.value,
+                comment: commentTextarea.value
+            };
+            
+            // Простейшая валидация
+            if (!formData.name || !formData.email) {
+                addToLog('❌ Ошибка: заполните обязательные поля', 'error');
+                alert('Заполните имя и email!');
+                return;
+            }
+            
+            addToLog('✅ Форма отправлена: ' + JSON.stringify(formData), 'success');
+            alert('Данные отправлены (проверьте лог)');
+        });
+        
+        // Сброс формы
+        resetBtn.addEventListener('click', () => {
+            // Очищаем поля
+            nameInput.value = '';
+            emailInput.value = '';
+            colorSelect.value = 'red';
+            commentTextarea.value = '';
+            
+            // Сбрасываем классы
+            [nameInput, emailInput].forEach(input => {
+                input.classList.remove('error', 'success');
+            });
+            
+            // Обновляем превью
+            previewName.textContent = '—';
+            previewEmail.textContent = '—';
+            previewColor.textContent = 'Красный';
+            previewComment.textContent = '—';
+            
+            addToLog('🔄 Форма сброшена');
+        });
+        
+        // Очистка лога
+        window.clearLog = () => {
+            eventLog.innerHTML = 'Лог очищен...';
+            addToLog('Лог очищен');
+        };
+        
+        // Дополнительно: обработка клавиш
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Enter для отправки
+            if (e.ctrlKey && e.key === 'Enter') {
+                addToLog('⌨️ Нажато Ctrl+Enter');
+                submitBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>DOM Манипуляции</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .card {
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background: #f9f9f9;
+            transition: all 0.3s;
+        }
+        .card.highlight {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover { background: #2980b9; }
+        button.danger { background: #e74c3c; }
+        button.danger:hover { background: #c0392b; }
+        input, textarea {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🛠️ DOM Манипуляции</h1>
+    
+    <div class="controls">
+        <button onclick="createElement()">✨ Создать элемент</button>
+        <button onclick="cloneElement()">📋 Клонировать последний</button>
+        <button onclick="removeLast()">🗑️ Удалить последний</button>
+        <button onclick="changeAttributes()">🎨 Изменить атрибуты</button>
+        <button onclick="toggleClass()">🔄 Переключить класс</button>
+        <button onclick="changeContent()">📝 Изменить текст</button>
+        <button onclick="clearAll()" class="danger">⚠️ Очистить всё</button>
+    </div>
+    
+    <div class="controls">
+        <input type="text" id="elementText" placeholder="Текст элемента" value="Новый элемент">
+        <select id="elementType">
+            <option value="div">Блок (div)</option>
+            <option value="p">Параграф (p)</option>
+            <option value="button">Кнопка (button)</option>
+        </select>
+    </div>
+    
+    <h3>Контейнер для элементов:</h3>
+    <div id="container" style="min-height: 200px; border: 2px dashed #ccc; padding: 10px;">
+        <!-- Сюда будут добавляться элементы -->
+        <div class="card" id="example1">
+            <h4>Пример 1</h4>
+            <p>Это пример существующего элемента</p>
+        </div>
+        <div class="card" id="example2">
+            <h4>Пример 2</h4>
+            <p>Еще один элемент</p>
+        </div>
+    </div>
+    
+    <h3>Информация:</h3>
+    <div id="info" style="background: #f0f0f0; padding: 10px; border-radius: 4px;"></div>
+    
+    <script>
+        const container = document.getElementById('container');
+        const info = document.getElementById('info');
+        
+        function updateInfo() {
+            const children = container.children;
+            info.innerHTML = `
+                <strong>Статистика:</strong><br>
+                Всего элементов: ${children.length}<br>
+                ID элементов: ${Array.from(children).map(el => el.id || 'без id').join(', ')}
+            `;
+        }
+        
+        // 1. СОЗДАНИЕ ЭЛЕМЕНТОВ
+        window.createElement = () => {
+            const text = document.getElementById('elementText').value;
+            const type = document.getElementById('elementType').value;
+            
+            // Создаем элемент
+            const newElement = document.createElement(type);
+            
+            // Добавляем класс
+            newElement.className = 'card';
+            
+            // Добавляем уникальный ID
+            newElement.id = 'element_' + Date.now();
+            
+            // Наполняем содержимым в зависимости от типа
+            if (type === 'button') {
+                newElement.textContent = text;
+                newElement.onclick = () => alert('Кнопка нажата!');
+            } else {
+                newElement.innerHTML = `
+                    <h4>${text}</h4>
+                    <p>Создан: ${new Date().toLocaleTimeString()}</p>
+                `;
+            }
+            
+            // Добавляем в контейнер
+            container.appendChild(newElement);
+            
+            updateInfo();
+        };
+        
+        // 2. КЛОНИРОВАНИЕ
+        window.cloneElement = () => {
+            const children = container.children;
+            if (children.length === 0) {
+                alert('Нет элементов для клонирования');
+                return;
+            }
+            
+            const lastElement = children[children.length - 1];
+            // deep: true - клонируем всё содержимое
+            const clone = lastElement.cloneNode(true);
+            
+            // Меняем ID у клона
+            clone.id = 'clone_' + Date.now();
+            
+            // Добавляем пометку, что это клон
+            const title = clone.querySelector('h4');
+            if (title) {
+                title.textContent = '[КЛОН] ' + title.textContent;
+            }
+            
+            container.appendChild(clone);
+            updateInfo();
+        };
+        
+        // 3. УДАЛЕНИЕ
+        window.removeLast = () => {
+            const children = container.children;
+            if (children.length > 0) {
+                const lastElement = children[children.length - 1];
+                lastElement.remove(); // Современный способ
+                // Или: container.removeChild(lastElement);
+            }
+            updateInfo();
+        };
+        
+        // 4. ИЗМЕНЕНИЕ АТРИБУТОВ
+        window.changeAttributes = () => {
+            const children = container.children;
+            Array.from(children).forEach((el, index) => {
+                // setAttribute - универсальный метод
+                el.setAttribute('data-index', index);
+                el.setAttribute('title', `Элемент ${index + 1}`);
+                
+                // Работа со стилями
+                el.style.borderWidth = '3px';
+                el.style.borderColor = '#27ae60';
+            });
+            updateInfo();
+        };
+        
+        // 5. ПЕРЕКЛЮЧЕНИЕ КЛАССОВ
+        window.toggleClass = () => {
+            const children = container.children;
+            Array.from(children).forEach(el => {
+                // classList - современный API для работы с классами
+                el.classList.toggle('highlight');
+            });
+        };
+        
+        // 6. ИЗМЕНЕНИЕ СОДЕРЖИМОГО
+        window.changeContent = () => {
+            const children = container.children;
+            Array.from(children).forEach(el => {
+                // Разные способы изменения содержимого
+                if (el.querySelector('h4')) {
+                    // innerHTML - парсит HTML
+                    el.innerHTML = el.innerHTML + ' <small>(изменено)</small>';
+                } else {
+                    // textContent - только текст (безопаснее)
+                    el.textContent = el.textContent + ' (изменено)';
+                }
+            });
+        };
+        
+        // 7. ОЧИСТКА
+        window.clearAll = () => {
+            // Самый простой способ очистить контейнер
+            container.innerHTML = '';
+            
+            // Альтернатива: while(container.firstChild) container.removeChild(container.firstChild);
+            
+            updateInfo();
+        };
+        
+        // Инициализация
+        updateInfo();
+    </script>
+</body>
+</html>
